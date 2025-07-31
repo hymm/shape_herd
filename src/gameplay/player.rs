@@ -3,7 +3,10 @@ use std::f32::consts::PI;
 use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
-    gameplay::physics::{Acceleration, Velocity},
+    gameplay::{
+        path::DrawPath,
+        physics::{Acceleration, Velocity},
+    },
     screens::Screen,
 };
 
@@ -13,7 +16,8 @@ impl Plugin for PlayerPlugin {
         app.add_systems(OnEnter(Screen::Gameplay), spawn_player)
             .add_systems(
                 Update,
-                (point_player, accelerate_player).run_if(in_state(Screen::Gameplay)),
+                (point_player, accelerate_player, control_drawing)
+                    .run_if(in_state(Screen::Gameplay)),
             );
     }
 }
@@ -39,6 +43,7 @@ fn spawn_player(
         MeshMaterial2d(mat_handle),
         Velocity::default(),
         Acceleration::default(),
+        DrawPath::default(),
     ));
 }
 
@@ -112,4 +117,16 @@ fn accelerate_player(
     };
 
     **a = forward.normalize() * a_forward + transverse.normalize() * a_transverse;
+}
+
+fn control_drawing(
+    buttons: Res<ButtonInput<KeyCode>>,
+    player: Single<&mut DrawPath, With<Player>>,
+) {
+    let mut draw = player.into_inner();
+    match (buttons.just_pressed(KeyCode::KeyE), draw.active()) {
+        (true, true) => draw.deactivate(),
+        (true, false) => draw.activate(),
+        _ => {}
+    }
 }

@@ -1,7 +1,12 @@
+mod path;
 mod physics;
 mod player;
 use bevy::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins((player::PlayerPlugin, physics::PhysicsPlugin));
+    app.add_plugins((
+        player::PlayerPlugin,
+        path::PathPlugin,
+        physics::PhysicsPlugin,
+    ));
 }
