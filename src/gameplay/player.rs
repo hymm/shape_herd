@@ -50,27 +50,24 @@ fn point_player(
     mut player_query: Query<&mut Transform, With<Player>>,
 ) -> Result<(), BevyError> {
     let window = window.single()?;
-    let mut player_point = None;
-    for position in cursor_pos.read() {
-        let Ok(transform) = camera.single() else {
-            continue;
-        };
-        // convert cursor_pos into world coordinates
-        let size = Vec2::new(window.width() as f32, window.height() as f32);
-        player_point = Some(position.position - size / 2.0 + transform.translation.truncate());
-    }
-
-    let Some(target) = player_point else {
-        // nothing to do
+    let Some(position) = cursor_pos.read().last() else {
         return Ok(());
     };
 
+    let Ok(transform) = camera.single() else {
+        return Ok(());
+    };
+
+    // convert cursor_pos into world coordinates
+    let size = Vec2::new(window.width() as f32, window.height() as f32);
+    let center_offset = (position.position - size / 2.0) * Vec2::new(1.0, -1.0);
+    let world_cursor = center_offset + transform.translation.truncate();
+
     let mut player_transform = player_query.single_mut()?;
 
-    let forward = Vec2::normalize(target - player_transform.translation.truncate());
+    let forward = Vec2::normalize(world_cursor - player_transform.translation.truncate());
     let angle = Vec2::Y.angle_to(forward);
-    // we need to negate the angle since neg z is direction of camera.(???)
-    player_transform.rotation = Quat::from_rotation_z(PI - angle);
+    player_transform.rotation = Quat::from_rotation_z(angle);
 
     Ok(())
 }
@@ -80,15 +77,15 @@ fn accelerate_player(
     player: Single<(&Transform, &Velocity, &mut Acceleration), With<Player>>,
 ) {
     // TODO: move these to a config file
-    const FRICTION_TRANSVERSE: f32 = 10.0;
-    const FRICTION_NEUTRAL: f32 = 10.0;
-    const FRICTION_REVERSE: f32 = 50.0;
+    const FRICTION_TRANSVERSE: f32 = 50.0;
+    const FRICTION_NEUTRAL: f32 = 50.0;
+    const FRICTION_REVERSE: f32 = 75.0;
     const FORWARD_ACCEL: f32 = 100.0;
 
     let (t, v, mut a) = player.into_inner();
 
     // calculate forward acceleration
-    let (_axis, angle) = t.rotation.to_axis_angle();
+    let (_, _, angle) = t.rotation.to_euler(EulerRot::XYZ);
     let forward = Vec2::from_angle(angle + PI / 2.);
     let v_forward = v.dot(forward);
     let a_forward = if button.pressed(KeyCode::KeyW) {
