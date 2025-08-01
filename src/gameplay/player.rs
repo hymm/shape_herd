@@ -82,7 +82,7 @@ fn accelerate_player(
     player: Single<(&Transform, &Velocity, &mut Acceleration), With<Player>>,
 ) {
     // TODO: move these to a config file
-    const FRICTION_TRANSVERSE: f32 = 50.0;
+    const FRICTION_TRANSVERSE: f32 = 200.0;
     const FRICTION_NEUTRAL: f32 = 50.0;
     const FRICTION_REVERSE: f32 = 75.0;
     const FORWARD_ACCEL: f32 = 100.0;
@@ -120,13 +120,19 @@ fn accelerate_player(
 }
 
 fn control_drawing(
+    mut command: Commands,
     buttons: Res<ButtonInput<KeyCode>>,
     player: Single<&mut DrawPath, With<Player>>,
 ) {
     let mut draw = player.into_inner();
-    match (buttons.just_pressed(KeyCode::KeyE), draw.active()) {
-        (true, true) => draw.deactivate(),
+    match (buttons.just_pressed(KeyCode::Space), draw.active()) {
         (true, false) => draw.activate(),
+        (true, true) => {
+            if let Some(path_entity) = draw.path() {
+                command.entity(path_entity).despawn();
+            }
+            draw.deactivate();
+        }
         _ => {}
     }
 }
