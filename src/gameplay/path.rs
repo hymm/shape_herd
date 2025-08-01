@@ -1,12 +1,17 @@
 use bevy::prelude::*;
-use geo::LineString;
+use geo::{LineString, Point, Polygon, prelude::Contains};
+
+use crate::gameplay::{
+    enemy::{Enemy, EnemyHandles, EnemyType},
+    physics::Velocity,
+};
 
 pub(crate) struct PathPlugin;
 impl Plugin for PathPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             FixedUpdate,
-            (record_path, find_intersections, draw_path).chain(),
+            (record_path, find_intersections, check_areas, draw_path).chain(),
         );
     }
 }
@@ -41,6 +46,17 @@ struct Path {
     // Entity that drew this path
     pen: Entity,
     points: Vec<Vec2>,
+}
+
+impl Path {
+    fn to_line_string(&self) -> LineString<f32> {
+        let coords = self
+            .points
+            .iter()
+            .map(|point| (point.x, point.y))
+            .collect::<Vec<_>>();
+        LineString::from(coords)
+    }
 }
 
 /// Marker Component for a path that is finished.
@@ -98,16 +114,10 @@ fn find_intersections(
     mut pens: Query<&mut DrawPath>,
 ) -> Result<(), BevyError> {
     for (path_entity, mut path) in &mut paths {
-        let coords = path
-            .points
-            .iter()
-            .map(|point| (point.x, point.y))
-            .collect::<Vec<_>>();
-        let line_string = LineString::from(coords);
         let intersections = intersect2d::algorithm::AlgorithmData::<f32>::default()
             .with_stop_at_first_intersection(true)?
             .with_ignore_end_point_intersections(true)?
-            .with_lines(line_string.lines())?
+            .with_lines(path.to_line_string().lines())?
             .compute()?;
         for (intersection_point, segment_indicies) in intersections {
             // insert the intersection point and drop points outside the polygon
@@ -120,4 +130,41 @@ fn find_intersections(
     }
 
     Ok(())
+}
+
+fn check_areas(
+    mut commands: Commands,
+    paths: Query<(Entity, &Path), With<ClosedPath>>,
+    enemies: Query<(Entity, &Transform, &Velocity, &EnemyType), With<Enemy>>,
+    handles: Res<EnemyHandles>,
+) {
+    for (e, path) in &paths {
+        let polygon = Polygon::new(path.to_line_string(), vec![]);
+        let mut surrounded = Vec::new();
+        for (enemy_entity, transform, velocity, enemy_type) in &enemies {
+            if polygon.contains(&Point::new(
+                transform.translation.x,
+                transform.translation.y,
+            )) {
+                surrounded.push((enemy_entity, *enemy_type, transform, velocity));
+            }
+        }
+
+        match surrounded.len() {
+            0 | 1 => commands.entity(e).despawn(),
+            2 | 3 => {
+                if let Some((typ, new_t, new_v)) = EnemyType::check_combine(surrounded.iter()) {
+                    typ.spawn(&mut commands, new_t, new_v, &handles);
+                    for (e, ..) in surrounded {
+                        commands.entity(e).despawn();
+                    }
+                } else {
+                    // explode the items
+                }
+            }
+            _ => {
+                // explode the items
+            }
+        }
+    }
 }

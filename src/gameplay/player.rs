@@ -82,7 +82,7 @@ fn accelerate_player(
     player: Single<(&Transform, &Velocity, &mut Acceleration), With<Player>>,
 ) {
     // TODO: move these to a config file
-    const FRICTION_TRANSVERSE: f32 = 200.0;
+    const FRICTION_TRANSVERSE: f32 = 300.0;
     const FRICTION_NEUTRAL: f32 = 50.0;
     const FRICTION_REVERSE: f32 = 75.0;
     const FORWARD_ACCEL: f32 = 100.0;

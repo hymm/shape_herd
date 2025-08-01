@@ -14,7 +14,7 @@ impl Plugin for PhysicsPlugin {
 pub(crate) struct Acceleration(Vec2);
 
 #[derive(Component, Deref, DerefMut, Default)]
-pub(crate) struct Velocity(Vec2);
+pub(crate) struct Velocity(pub Vec2);
 
 fn apply_velocity(mut q: Query<(&Velocity, &mut Transform)>, time: Res<Time>) {
     for (v, mut t) in &mut q {
