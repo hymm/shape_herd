@@ -121,12 +121,12 @@ fn find_intersections(
     mut pens: Query<&mut DrawPath>,
 ) -> Result<(), BevyError> {
     for (path_entity, mut path) in &mut paths {
-        let intersections = intersect2d::algorithm::AlgorithmData::<f32>::default()
+        let mut intersections = intersect2d::algorithm::AlgorithmData::<f32>::default()
             .with_stop_at_first_intersection(true)?
             .with_ignore_end_point_intersections(true)?
             .with_lines(path.to_line_string().lines())?
             .compute()?;
-        for (intersection_point, segment_indicies) in intersections {
+        if let Some((intersection_point, segment_indicies)) = intersections.next() {
             // insert the intersection point and drop points outside the polygon
             let mut new_points = path.points[segment_indicies[0]..segment_indicies[1]].to_vec();
             new_points.push(Vec2::new(intersection_point.x, intersection_point.y));
