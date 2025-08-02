@@ -57,6 +57,9 @@ impl Path {
     }
 }
 
+#[derive(Resource)]
+struct ActivePaths(Vec<Entity>);
+
 /// Marker Component for a path that is finished.
 #[derive(Component)]
 struct ClosedPath;
@@ -173,6 +176,7 @@ fn check_areas(
                         spawn_enemies.write(SpawnEnemies);
                     }
                 } else {
+                    commands.entity(e).despawn();
                     // explode the items
                 }
             }

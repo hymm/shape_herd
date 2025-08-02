@@ -2,6 +2,7 @@ mod enemy;
 mod path;
 mod physics;
 mod player;
+mod rng_bag;
 use avian2d::prelude::{Collider, RigidBody};
 use bevy::{prelude::*, window::PrimaryWindow};
 

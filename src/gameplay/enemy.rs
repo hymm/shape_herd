@@ -1,12 +1,15 @@
 use std::f32::consts::PI;
 
 use avian2d::prelude::{
-    CoefficientCombine, Collider, Friction, LinearVelocity, Restitution, RigidBody,
+    AngularVelocity, CoefficientCombine, Collider, Friction, LinearVelocity, Restitution, RigidBody,
 };
 use bevy::color::palettes::tailwind;
 use bevy::math::ops::cos;
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
+use rand::Rng;
 
+use crate::gameplay::rng_bag::RngBag;
 use crate::screens::Screen;
 
 pub(crate) struct EnemyPlugin;
@@ -143,6 +146,7 @@ impl EnemyType {
             Mesh2d(mesh),
             RigidBody::Dynamic,
             velocity,
+            AngularVelocity::default(),
             Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
             Collider::circle(10.),
             Restitution::new(0.8),
@@ -177,9 +181,9 @@ impl EnemyType {
                 )
                 .into()
             }
-            EnemyType::Green => CircularSector::new(SHAPE_LENGTH, PI / 3.).into(),
+            EnemyType::Green => RegularPolygon::new(0.55 * SHAPE_LENGTH, 6).into(),
             EnemyType::Blue => Rectangle::new(SHAPE_LENGTH, SHAPE_LENGTH).into(),
-            EnemyType::Purple => CircularSector::new(SHAPE_LENGTH, PI * 2. / 3.).into(),
+            EnemyType::Purple => RegularPolygon::new(1.1 * SHAPE_LENGTH, 6).into(),
             EnemyType::Yellow => Rectangle::new(2. * SHAPE_LENGTH, 2. * SHAPE_LENGTH).into(),
             EnemyType::Cyan => {
                 let triangle_height = 2. * SHAPE_LENGTH * cos(PI / 3.);
@@ -281,43 +285,27 @@ fn spawn_enemies(
     handles: Res<EnemyHandles>,
     mut spawn: EventReader<SpawnEnemies>,
     enemies: Query<(), With<Enemy>>,
+    window: Single<&Window, With<PrimaryWindow>>,
 ) {
+    let mut rng_bag = RngBag::new(vec![EnemyType::Red, EnemyType::Blue, EnemyType::Green]);
+    let mut rng = rand::thread_rng();
     for _ in spawn.read() {
-        EnemyType::Red.spawn(
-            &mut commands,
-            Transform::from_xyz(100., 100., 0.),
-            LinearVelocity(Vec2::new(-50.0, -50.0)),
-            &handles,
-        );
-        EnemyType::Blue.spawn(
-            &mut commands,
-            Transform::from_xyz(0., 100., 0.),
-            LinearVelocity(Vec2::new(50.0, -50.0)),
-            &handles,
-        );
-        EnemyType::Green.spawn(
-            &mut commands,
-            Transform::from_xyz(-100., -100., 0.),
-            LinearVelocity(Vec2::new(50.0, 50.0)),
-            &handles,
-        );
-        if enemies.iter().len() > 4 {
-            EnemyType::Red.spawn(
+        let item_count = if enemies.iter().len() < 3 { 3 } else { 6 };
+        for _ in 0..item_count {
+            let typ = rng_bag.get();
+            const MAX_VELOCITY: f32 = 100.0;
+            let max_t = window.size() / 2. - 20.;
+            typ.spawn(
                 &mut commands,
-                Transform::from_xyz(100., 100., 0.),
-                LinearVelocity(Vec2::new(-50.0, -50.0)),
-                &handles,
-            );
-            EnemyType::Blue.spawn(
-                &mut commands,
-                Transform::from_xyz(0., 100., 0.),
-                LinearVelocity(Vec2::new(50.0, -50.0)),
-                &handles,
-            );
-            EnemyType::Green.spawn(
-                &mut commands,
-                Transform::from_xyz(-100., -100., 0.),
-                LinearVelocity(Vec2::new(50.0, 50.0)),
+                Transform::from_xyz(
+                    rng.gen_range(-max_t.x..max_t.x),
+                    rng.gen_range(-max_t.y..max_t.y),
+                    0.,
+                ),
+                LinearVelocity(Vec2::new(
+                    rng.gen_range(-MAX_VELOCITY..MAX_VELOCITY),
+                    rng.gen_range(-MAX_VELOCITY..MAX_VELOCITY),
+                )),
                 &handles,
             );
         }

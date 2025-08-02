@@ -99,8 +99,9 @@ fn accelerate_player(
     // TODO: move these to a config file
     const FRICTION_TRANSVERSE: f32 = 300.0;
     const FRICTION_NEUTRAL: f32 = 50.0;
-    const FRICTION_REVERSE: f32 = 75.0;
+    const FRICTION_BRAKE: f32 = 500.0;
     const FORWARD_ACCEL: f32 = 100.0;
+    const FORWARD_ACCEL_REVERSE: f32 = 200.0;
 
     let (t, v, mut a) = player.into_inner();
 
@@ -109,9 +110,19 @@ fn accelerate_player(
     let forward = Vec2::from_angle(angle + PI / 2.);
     let v_forward = v.dot(forward);
     let a_forward = if button.pressed(KeyCode::KeyW) {
-        FORWARD_ACCEL
+        if v_forward >= 0.0 {
+            FORWARD_ACCEL
+        } else {
+            FORWARD_ACCEL_REVERSE
+        }
     } else if button.pressed(KeyCode::KeyS) {
-        -FRICTION_REVERSE
+        if v_forward > 0.0 {
+            -FRICTION_BRAKE
+        } else if v_forward < 0.0 {
+            FRICTION_BRAKE
+        } else {
+            0.0
+        }
     } else if v_forward < 0.0 {
         FRICTION_NEUTRAL
     } else if v_forward > 0.0 {
