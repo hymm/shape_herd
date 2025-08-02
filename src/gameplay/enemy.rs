@@ -201,10 +201,7 @@ impl EnemyType {
 
     fn is_primary(&self) -> bool {
         use EnemyType::*;
-        match self {
-            Red | Green | Blue => true,
-            _ => false,
-        }
+        matches!(self, Red | Green | Blue)
     }
 
     /// returns None if they can't combine
@@ -214,7 +211,7 @@ impl EnemyType {
         >,
     ) -> Option<(EnemyType, Transform, LinearVelocity)> {
         match enemies.len() {
-            0 | 1 => return None,
+            0 | 1 => None,
             2 => {
                 let Some((_, enemy_type, t, v)) = enemies.next() else {
                     unreachable!();
@@ -224,14 +221,12 @@ impl EnemyType {
                     unreachable!();
                 };
 
-                let Some(new_type) = enemy_type.pair_combine(*next_type) else {
-                    return None;
-                };
+                let new_type = enemy_type.pair_combine(*next_type)?;
 
                 let new_t = Transform::from_translation((t.translation + next_t.translation) / 2.);
                 let new_v = LinearVelocity((v.0 + next_v.0) / 2.);
 
-                return Some((new_type, new_t, new_v));
+                Some((new_type, new_t, new_v))
             }
             3 => {
                 let mut has_red = false;
@@ -257,16 +252,16 @@ impl EnemyType {
                 }
 
                 if has_red && has_green && has_blue {
-                    return Some((
+                    Some((
                         EnemyType::White,
                         Transform::from_translation((new_t / 3.).extend(0.0)),
                         LinearVelocity(new_v / 3.),
-                    ));
+                    ))
                 } else {
-                    return None;
+                    None
                 }
             }
-            _ => return None,
+            _ => None,
         }
     }
 }

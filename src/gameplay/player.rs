@@ -78,7 +78,7 @@ fn point_player(
     };
 
     // convert cursor_pos into world coordinates
-    let size = Vec2::new(window.width() as f32, window.height() as f32);
+    let size = Vec2::new(window.width(), window.height());
     let center_offset = (position.position - size / 2.0) * Vec2::new(1.0, -1.0);
     let world_cursor = center_offset + transform.translation.truncate();
 
