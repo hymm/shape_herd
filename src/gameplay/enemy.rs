@@ -13,13 +13,23 @@ pub(crate) struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EnemyHandles>()
-            .add_systems(OnEnter(Screen::Gameplay), spawn_enemies);
+            .add_event::<SpawnEnemies>()
+            .add_systems(
+                OnEnter(Screen::Gameplay),
+                |mut spawn: EventWriter<SpawnEnemies>| {
+                    spawn.write(SpawnEnemies);
+                },
+            )
+            .add_systems(Update, spawn_enemies.run_if(in_state(Screen::Gameplay)));
     }
 }
 
 /// Marker component for an enemy
 #[derive(Component)]
 pub struct Enemy;
+
+#[derive(Event)]
+pub struct SpawnEnemies;
 
 #[derive(Resource)]
 pub(crate) struct EnemyHandles {
@@ -266,23 +276,29 @@ impl EnemyType {
     }
 }
 
-fn spawn_enemies(mut commands: Commands, handles: Res<EnemyHandles>) {
-    EnemyType::Red.spawn(
-        &mut commands,
-        Transform::from_xyz(100., 100., 0.),
-        LinearVelocity(Vec2::new(-50.0, -50.0)),
-        &handles,
-    );
-    EnemyType::Blue.spawn(
-        &mut commands,
-        Transform::from_xyz(0., 100., 0.),
-        LinearVelocity(Vec2::new(50.0, -50.0)),
-        &handles,
-    );
-    EnemyType::Green.spawn(
-        &mut commands,
-        Transform::from_xyz(-100., -100., 0.),
-        LinearVelocity(Vec2::new(50.0, 50.0)),
-        &handles,
-    );
+fn spawn_enemies(
+    mut commands: Commands,
+    handles: Res<EnemyHandles>,
+    mut spawn: EventReader<SpawnEnemies>,
+) {
+    for _ in spawn.read() {
+        EnemyType::Red.spawn(
+            &mut commands,
+            Transform::from_xyz(100., 100., 0.),
+            LinearVelocity(Vec2::new(-50.0, -50.0)),
+            &handles,
+        );
+        EnemyType::Blue.spawn(
+            &mut commands,
+            Transform::from_xyz(0., 100., 0.),
+            LinearVelocity(Vec2::new(50.0, -50.0)),
+            &handles,
+        );
+        EnemyType::Green.spawn(
+            &mut commands,
+            Transform::from_xyz(-100., -100., 0.),
+            LinearVelocity(Vec2::new(50.0, 50.0)),
+            &handles,
+        );
+    }
 }

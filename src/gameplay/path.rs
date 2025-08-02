@@ -2,7 +2,7 @@ use avian2d::prelude::{Collider, LinearVelocity, RigidBody};
 use bevy::prelude::*;
 use geo::{LineString, Point, Polygon, prelude::Contains};
 
-use crate::gameplay::enemy::{Enemy, EnemyHandles, EnemyType};
+use crate::gameplay::enemy::{Enemy, EnemyHandles, EnemyType, SpawnEnemies};
 
 pub(crate) struct PathPlugin;
 impl Plugin for PathPlugin {
@@ -144,6 +144,7 @@ fn check_areas(
     paths: Query<(Entity, &Path), With<ClosedPath>>,
     enemies: Query<(Entity, &Transform, &EnemyType, &LinearVelocity), With<Enemy>>,
     handles: Res<EnemyHandles>,
+    mut spawn_enemies: EventWriter<SpawnEnemies>,
 ) {
     for (e, path) in &paths {
         let polygon = Polygon::new(path.to_line_string(), vec![]);
@@ -164,15 +165,18 @@ fn check_areas(
             2 | 3 => {
                 if let Some((typ, new_t, new_v)) = EnemyType::check_combine(surrounded.iter()) {
                     typ.spawn(&mut commands, new_t, new_v, &handles);
-                    for (e, ..) in surrounded {
-                        commands.entity(e).despawn();
+                    for (enemy, ..) in surrounded {
+                        commands.entity(enemy).despawn();
                     }
+                    commands.entity(e).despawn();
+                    spawn_enemies.write(SpawnEnemies);
                 } else {
                     // explode the items
                 }
             }
             _ => {
                 // explode the items
+                commands.entity(e).despawn();
             }
         }
     }
