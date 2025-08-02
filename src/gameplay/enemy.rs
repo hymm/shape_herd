@@ -1,5 +1,8 @@
 use std::f32::consts::PI;
 
+use avian2d::prelude::{
+    CoefficientCombine, Collider, Friction, LinearVelocity, Restitution, RigidBody,
+};
 use bevy::color::palettes::tailwind;
 use bevy::math::ops::cos;
 use bevy::prelude::*;
@@ -129,7 +132,11 @@ impl EnemyType {
             transform,
             MeshMaterial2d(material),
             Mesh2d(mesh),
-            velocity,
+            RigidBody::Dynamic,
+            LinearVelocity(velocity.0),
+            Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
+            Collider::circle(10.),
+            Restitution::new(0.8),
         ));
     }
 
@@ -203,7 +210,7 @@ impl EnemyType {
 
     /// returns None if they can't combine
     pub fn check_combine<'a>(
-        mut enemies: impl ExactSizeIterator<Item = &'a (Entity, EnemyType, &'a Transform, &'a Velocity)>,
+        mut enemies: impl ExactSizeIterator<Item = &'a (Entity, EnemyType, Transform, &'a Velocity)>,
     ) -> Option<(EnemyType, Transform, Velocity)> {
         match enemies.len() {
             0 | 1 => return None,
@@ -267,19 +274,19 @@ fn spawn_enemies(mut commands: Commands, handles: Res<EnemyHandles>) {
     EnemyType::Red.spawn(
         &mut commands,
         Transform::from_xyz(100., 100., 0.),
-        Velocity::default(),
+        Velocity(Vec2::new(-50.0, -50.0)),
         &handles,
     );
     EnemyType::Blue.spawn(
         &mut commands,
         Transform::from_xyz(0., 100., 0.),
-        Velocity::default(),
+        Velocity(Vec2::new(50.0, -50.0)),
         &handles,
     );
     EnemyType::Green.spawn(
         &mut commands,
         Transform::from_xyz(-100., -100., 0.),
-        Velocity::default(),
+        Velocity(Vec2::new(50.0, 50.0)),
         &handles,
     );
 }

@@ -12,11 +12,14 @@ mod menus;
 mod screens;
 mod theme;
 
+use avian2d::{PhysicsPlugins, prelude::Gravity};
+#[cfg(debug_assertions)]
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::{asset::AssetMetaCheck, prelude::*};
 
 fn main() -> AppExit {
     let mut app = App::new();
-    app.add_plugins(
+    app.add_plugins((
         DefaultPlugins
             .set(AssetPlugin {
                 // Wasm builds will check for meta files (that don't exist) if this isn't set.
@@ -34,7 +37,11 @@ fn main() -> AppExit {
                 .into(),
                 ..default()
             }),
-    )
+        PhysicsPlugins::default(),
+        #[cfg(debug_assertions)]
+        FrameTimeDiagnosticsPlugin::default(),
+    ))
+    .insert_resource(Gravity(Vec2::splat(0.0)))
     .add_plugins((
         asset_tracking::plugin,
         audio::plugin,

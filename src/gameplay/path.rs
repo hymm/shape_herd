@@ -1,3 +1,4 @@
+use avian2d::prelude::{Collider, RigidBody};
 use bevy::prelude::*;
 use geo::{LineString, Point, Polygon, prelude::Contains};
 
@@ -82,15 +83,24 @@ fn record_path(
                 continue;
             };
             if new_point != *last_point {
+                commands.entity(path_entity).with_children(|child| {
+                    child.spawn((
+                        Collider::segment(new_point, *last_point),
+                        RigidBody::Kinematic,
+                    ));
+                });
                 path.points.push(new_point);
             }
         } else {
             let points = vec![t.translation.truncate()];
             let path_entity = commands
-                .spawn(Path {
-                    pen: pencil,
-                    points,
-                })
+                .spawn((
+                    Path {
+                        pen: pencil,
+                        points,
+                    },
+                    Transform::default(),
+                ))
                 .id();
             draw.path = Some(path_entity);
         }
@@ -135,7 +145,7 @@ fn find_intersections(
 fn check_areas(
     mut commands: Commands,
     paths: Query<(Entity, &Path), With<ClosedPath>>,
-    enemies: Query<(Entity, &Transform, &Velocity, &EnemyType), With<Enemy>>,
+    enemies: Query<(Entity, &GlobalTransform, &Velocity, &EnemyType), With<Enemy>>,
     handles: Res<EnemyHandles>,
 ) {
     for (e, path) in &paths {
@@ -143,14 +153,19 @@ fn check_areas(
         let mut surrounded = Vec::new();
         for (enemy_entity, transform, velocity, enemy_type) in &enemies {
             if polygon.contains(&Point::new(
-                transform.translation.x,
-                transform.translation.y,
+                transform.translation().x,
+                transform.translation().y,
             )) {
-                surrounded.push((enemy_entity, *enemy_type, transform, velocity));
+                surrounded.push((
+                    enemy_entity,
+                    *enemy_type,
+                    transform.compute_transform(),
+                    velocity,
+                ));
             }
         }
 
-        match surrounded.len() {
+        match dbg!(surrounded.len()) {
             0 | 1 => commands.entity(e).despawn(),
             2 | 3 => {
                 if let Some((typ, new_t, new_v)) = EnemyType::check_combine(surrounded.iter()) {

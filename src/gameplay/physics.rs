@@ -5,7 +5,11 @@ impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             FixedUpdate,
-            (apply_acceleration, apply_velocity, apply_screen_wrap).chain(),
+            (
+                apply_acceleration,
+                apply_velocity, /* apply_screen_wrap */
+            )
+                .chain(),
         );
     }
 }
@@ -13,7 +17,7 @@ impl Plugin for PhysicsPlugin {
 #[derive(Component, Deref, DerefMut, Default)]
 pub(crate) struct Acceleration(Vec2);
 
-#[derive(Component, Deref, DerefMut, Default)]
+#[derive(Component, Deref, DerefMut, Default, Clone, Copy)]
 pub(crate) struct Velocity(pub Vec2);
 
 fn apply_velocity(mut q: Query<(&Velocity, &mut Transform)>, time: Res<Time>) {
