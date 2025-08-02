@@ -1,16 +1,11 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::prelude::*;
 
+/// Currently only controls player. other physics are implemented using avian
+/// TODO: try using avian dynamic body for player
 pub(crate) struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            FixedUpdate,
-            (
-                apply_acceleration,
-                apply_velocity, /* apply_screen_wrap */
-            )
-                .chain(),
-        );
+        app.add_systems(FixedUpdate, (apply_acceleration, apply_velocity).chain());
     }
 }
 
@@ -29,18 +24,5 @@ fn apply_velocity(mut q: Query<(&Velocity, &mut Transform)>, time: Res<Time>) {
 fn apply_acceleration(mut q: Query<(&Acceleration, &mut Velocity)>, time: Res<Time>) {
     for (a, mut v) in &mut q {
         v.0 += a.0 * time.delta_secs();
-    }
-}
-
-fn apply_screen_wrap(
-    window: Single<&Window, With<PrimaryWindow>>,
-    mut wrap_query: Query<&mut Transform>,
-) {
-    let size = window.size();
-    let half_size = size / 2.0;
-    for mut transform in &mut wrap_query {
-        let position = transform.translation.xy();
-        let wrapped = (position + half_size).rem_euclid(size) - half_size;
-        transform.translation = wrapped.extend(transform.translation.z);
     }
 }

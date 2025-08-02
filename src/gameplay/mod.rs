@@ -17,6 +17,9 @@ pub(super) fn plugin(app: &mut App) {
     .add_systems(OnEnter(Screen::Gameplay), spawn_window_colliders);
 }
 
+#[derive(Component)]
+struct Wall;
+
 fn spawn_window_colliders(mut commands: Commands, window: Single<&Window, With<PrimaryWindow>>) {
     let size = window.size();
     // top
@@ -24,23 +27,27 @@ fn spawn_window_colliders(mut commands: Commands, window: Single<&Window, With<P
         Collider::half_space(Vec2::NEG_Y),
         RigidBody::Kinematic,
         Transform::from_xyz(0.0, size.y / 2., 0.0),
+        Wall,
     ));
     // bottom
     commands.spawn((
         Collider::half_space(Vec2::Y),
         RigidBody::Kinematic,
         Transform::from_xyz(0.0, -size.y / 2., 0.0),
+        Wall,
     ));
     // right
     commands.spawn((
         Collider::half_space(Vec2::NEG_X),
         RigidBody::Kinematic,
         Transform::from_xyz(size.x / 2., 0.0, 0.0),
+        Wall,
     ));
     // left
     commands.spawn((
         Collider::half_space(Vec2::X),
         RigidBody::Kinematic,
         Transform::from_xyz(-size.x / 2., 0.0, 0.0),
+        Wall,
     ));
 }

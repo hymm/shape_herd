@@ -1,9 +1,13 @@
 use std::f32::consts::PI;
 
+use avian2d::prelude::{
+    CoefficientCombine, Collider, Collisions, Friction, Restitution, RigidBody,
+};
 use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
     gameplay::{
+        Wall,
         path::DrawPath,
         physics::{Acceleration, Velocity},
     },
@@ -16,7 +20,12 @@ impl Plugin for PlayerPlugin {
         app.add_systems(OnEnter(Screen::Gameplay), spawn_player)
             .add_systems(
                 Update,
-                (point_player, accelerate_player, control_drawing)
+                (
+                    point_player,
+                    accelerate_player,
+                    (control_drawing, handle_player_collisions),
+                )
+                    .chain()
                     .run_if(in_state(Screen::Gameplay)),
             );
     }
@@ -30,10 +39,11 @@ fn spawn_player(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
+    let triangle_points = [Vec2::Y * 8.0, Vec2::new(-5.0, -8.0), Vec2::new(5.0, -8.0)];
     let mesh_handle = meshes.add(Triangle2d::new(
-        Vec2::Y * 8.0,
-        Vec2::new(-5.0, -8.0),
-        Vec2::new(5.0, -8.0),
+        triangle_points[0],
+        triangle_points[1],
+        triangle_points[2],
     ));
     let mat_handle = materials.add(Color::hsl(0., 1.0, 1.0));
     commands.spawn((
@@ -44,6 +54,10 @@ fn spawn_player(
         Velocity::default(),
         Acceleration::default(),
         DrawPath::default(),
+        RigidBody::Kinematic,
+        Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
+        Collider::triangle(triangle_points[0], triangle_points[1], triangle_points[2]),
+        Restitution::new(0.8),
     ));
 }
 
@@ -134,5 +148,28 @@ fn control_drawing(
             draw.deactivate();
         }
         _ => {}
+    }
+}
+
+fn handle_player_collisions(
+    player: Single<(Entity, &mut Velocity, &mut Transform), With<Player>>,
+    walls: Query<(), With<Wall>>,
+    collisions: Collisions,
+) {
+    let (player, mut player_v, mut player_t) = player.into_inner();
+    for contact_pair in collisions.collisions_with(player) {
+        // walls
+        if walls.contains(contact_pair.collider1) {
+            let normal = contact_pair.manifolds[0].normal;
+            let colliion_perp = contact_pair.manifolds[0].normal.perp();
+            // zero velocity in direction of impulse
+            player_v.0 = player_v.0.dot(colliion_perp) * colliion_perp;
+            // make sure player is outside of wall
+            if let Some(contact_point) = contact_pair.find_deepest_contact() {
+                let mut current_pos = player_t.translation.truncate();
+                current_pos += normal * contact_point.penetration;
+                player_t.translation = current_pos.extend(0.0);
+            }
+        }
     }
 }

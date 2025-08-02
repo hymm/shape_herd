@@ -7,7 +7,6 @@ use bevy::color::palettes::tailwind;
 use bevy::math::ops::cos;
 use bevy::prelude::*;
 
-use crate::gameplay::physics::Velocity;
 use crate::screens::Screen;
 
 pub(crate) struct EnemyPlugin;

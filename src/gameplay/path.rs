@@ -2,10 +2,7 @@ use avian2d::prelude::{Collider, LinearVelocity, RigidBody};
 use bevy::prelude::*;
 use geo::{LineString, Point, Polygon, prelude::Contains};
 
-use crate::gameplay::{
-    enemy::{Enemy, EnemyHandles, EnemyType},
-    physics::Velocity,
-};
+use crate::gameplay::enemy::{Enemy, EnemyHandles, EnemyType};
 
 pub(crate) struct PathPlugin;
 impl Plugin for PathPlugin {
