@@ -1,4 +1,4 @@
-use avian2d::prelude::{Collider, RigidBody};
+use avian2d::prelude::{Collider, LinearVelocity, RigidBody};
 use bevy::prelude::*;
 use geo::{LineString, Point, Polygon, prelude::Contains};
 
@@ -145,28 +145,25 @@ fn find_intersections(
 fn check_areas(
     mut commands: Commands,
     paths: Query<(Entity, &Path), With<ClosedPath>>,
-    enemies: Query<(Entity, &GlobalTransform, &Velocity, &EnemyType), With<Enemy>>,
+    enemies: Query<(Entity, &Transform, &EnemyType, &LinearVelocity), With<Enemy>>,
     handles: Res<EnemyHandles>,
 ) {
     for (e, path) in &paths {
         let polygon = Polygon::new(path.to_line_string(), vec![]);
         let mut surrounded = Vec::new();
-        for (enemy_entity, transform, velocity, enemy_type) in &enemies {
+        for (enemy_entity, transform, enemy_type, velocity) in &enemies {
             if polygon.contains(&Point::new(
-                transform.translation().x,
-                transform.translation().y,
+                transform.translation.x,
+                transform.translation.y,
             )) {
-                surrounded.push((
-                    enemy_entity,
-                    *enemy_type,
-                    transform.compute_transform(),
-                    velocity,
-                ));
+                surrounded.push((enemy_entity, *enemy_type, *transform, velocity));
             }
         }
 
-        match dbg!(surrounded.len()) {
-            0 | 1 => commands.entity(e).despawn(),
+        match surrounded.len() {
+            0 | 1 => {
+                commands.entity(e).despawn();
+            }
             2 | 3 => {
                 if let Some((typ, new_t, new_v)) = EnemyType::check_combine(surrounded.iter()) {
                     typ.spawn(&mut commands, new_t, new_v, &handles);

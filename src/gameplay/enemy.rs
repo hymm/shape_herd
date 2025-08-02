@@ -121,7 +121,7 @@ impl EnemyType {
         self,
         commands: &mut Commands,
         transform: Transform,
-        velocity: Velocity,
+        velocity: LinearVelocity,
         handles: &EnemyHandles,
     ) {
         let mesh = handles.mesh(self);
@@ -133,7 +133,7 @@ impl EnemyType {
             MeshMaterial2d(material),
             Mesh2d(mesh),
             RigidBody::Dynamic,
-            LinearVelocity(velocity.0),
+            velocity,
             Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
             Collider::circle(10.),
             Restitution::new(0.8),
@@ -210,8 +210,10 @@ impl EnemyType {
 
     /// returns None if they can't combine
     pub fn check_combine<'a>(
-        mut enemies: impl ExactSizeIterator<Item = &'a (Entity, EnemyType, Transform, &'a Velocity)>,
-    ) -> Option<(EnemyType, Transform, Velocity)> {
+        mut enemies: impl ExactSizeIterator<
+            Item = &'a (Entity, EnemyType, Transform, &'a LinearVelocity),
+        >,
+    ) -> Option<(EnemyType, Transform, LinearVelocity)> {
         match enemies.len() {
             0 | 1 => return None,
             2 => {
@@ -228,7 +230,7 @@ impl EnemyType {
                 };
 
                 let new_t = Transform::from_translation((t.translation + next_t.translation) / 2.);
-                let new_v = Velocity((v.0 + next_v.0) / 2.);
+                let new_v = LinearVelocity((v.0 + next_v.0) / 2.);
 
                 return Some((new_type, new_t, new_v));
             }
@@ -259,7 +261,7 @@ impl EnemyType {
                     return Some((
                         EnemyType::White,
                         Transform::from_translation((new_t / 3.).extend(0.0)),
-                        Velocity(new_v / 3.),
+                        LinearVelocity(new_v / 3.),
                     ));
                 } else {
                     return None;
@@ -274,19 +276,19 @@ fn spawn_enemies(mut commands: Commands, handles: Res<EnemyHandles>) {
     EnemyType::Red.spawn(
         &mut commands,
         Transform::from_xyz(100., 100., 0.),
-        Velocity(Vec2::new(-50.0, -50.0)),
+        LinearVelocity(Vec2::new(-50.0, -50.0)),
         &handles,
     );
     EnemyType::Blue.spawn(
         &mut commands,
         Transform::from_xyz(0., 100., 0.),
-        Velocity(Vec2::new(50.0, -50.0)),
+        LinearVelocity(Vec2::new(50.0, -50.0)),
         &handles,
     );
     EnemyType::Green.spawn(
         &mut commands,
         Transform::from_xyz(-100., -100., 0.),
-        Velocity(Vec2::new(50.0, 50.0)),
+        LinearVelocity(Vec2::new(50.0, 50.0)),
         &handles,
     );
 }
