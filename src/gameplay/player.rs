@@ -8,7 +8,6 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use crate::{
     gameplay::{
         Wall,
-        enemy::Enemy,
         path::DrawPath,
         physics::{Acceleration, Velocity},
     },
@@ -146,7 +145,6 @@ fn accelerate_player(
 }
 
 fn control_drawing(
-    mut command: Commands,
     buttons: Res<ButtonInput<KeyCode>>,
     player: Single<&mut DrawPath, With<Player>>,
 ) {
@@ -154,9 +152,6 @@ fn control_drawing(
     match (buttons.just_pressed(KeyCode::Space), draw.active()) {
         (true, false) => draw.activate(),
         (true, true) => {
-            if let Some(path_entity) = draw.path() {
-                command.entity(path_entity).despawn();
-            }
             draw.deactivate();
         }
         _ => {}
@@ -164,13 +159,11 @@ fn control_drawing(
 }
 
 fn handle_player_collisions(
-    mut commands: Commands,
-    player: Single<(Entity, &mut Velocity, &mut Transform, &mut DrawPath), With<Player>>,
+    player: Single<(Entity, &mut Velocity, &mut Transform), With<Player>>,
     walls: Query<(), With<Wall>>,
-    enemies: Query<(), With<Enemy>>,
     collisions: Collisions,
 ) {
-    let (player, mut player_v, mut player_t, mut draw) = player.into_inner();
+    let (player, mut player_v, mut player_t) = player.into_inner();
     for contact_pair in collisions.collisions_with(player) {
         // walls
         if walls.contains(contact_pair.collider1) {
@@ -184,13 +177,6 @@ fn handle_player_collisions(
                 current_pos += normal * contact_point.penetration;
                 player_t.translation = current_pos.extend(0.0);
             }
-        }
-
-        if enemies.contains(contact_pair.collider1) {
-            if let Some(path_entity) = draw.path() {
-                commands.entity(path_entity).despawn();
-            }
-            draw.deactivate();
         }
     }
 }
