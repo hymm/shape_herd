@@ -169,7 +169,9 @@ fn check_areas(
                         commands.entity(enemy).despawn();
                     }
                     commands.entity(e).despawn();
-                    spawn_enemies.write(SpawnEnemies);
+                    if typ == EnemyType::White {
+                        spawn_enemies.write(SpawnEnemies);
+                    }
                 } else {
                     // explode the items
                 }

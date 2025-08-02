@@ -280,6 +280,7 @@ fn spawn_enemies(
     mut commands: Commands,
     handles: Res<EnemyHandles>,
     mut spawn: EventReader<SpawnEnemies>,
+    enemies: Query<(), With<Enemy>>,
 ) {
     for _ in spawn.read() {
         EnemyType::Red.spawn(
@@ -300,5 +301,25 @@ fn spawn_enemies(
             LinearVelocity(Vec2::new(50.0, 50.0)),
             &handles,
         );
+        if enemies.iter().len() > 4 {
+            EnemyType::Red.spawn(
+                &mut commands,
+                Transform::from_xyz(100., 100., 0.),
+                LinearVelocity(Vec2::new(-50.0, -50.0)),
+                &handles,
+            );
+            EnemyType::Blue.spawn(
+                &mut commands,
+                Transform::from_xyz(0., 100., 0.),
+                LinearVelocity(Vec2::new(50.0, -50.0)),
+                &handles,
+            );
+            EnemyType::Green.spawn(
+                &mut commands,
+                Transform::from_xyz(-100., -100., 0.),
+                LinearVelocity(Vec2::new(50.0, 50.0)),
+                &handles,
+            );
+        }
     }
 }
