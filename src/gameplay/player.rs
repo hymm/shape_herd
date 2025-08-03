@@ -27,7 +27,8 @@ impl Plugin for PlayerPlugin {
                 )
                     .chain()
                     .run_if(in_state(Screen::Gameplay)),
-            );
+            )
+            .add_systems(OnExit(Screen::Gameplay), despawn_player);
     }
 }
 
@@ -179,4 +180,8 @@ fn handle_player_collisions(
             }
         }
     }
+}
+
+fn despawn_player(mut commands: Commands, player: Single<Entity, With<Player>>) {
+    commands.entity(*player).despawn();
 }

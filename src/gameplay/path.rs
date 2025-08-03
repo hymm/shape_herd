@@ -5,22 +5,27 @@ use bevy::{
 };
 use geo::{LineString, Point, Polygon, prelude::Contains};
 
-use crate::gameplay::enemy::{Enemy, EnemyHandles, EnemyType, SpawnEnemies};
+use crate::{
+    gameplay::enemy::{Enemy, EnemyHandles, EnemyType, SpawnEnemies},
+    screens::Screen,
+};
 
 pub(crate) struct PathPlugin;
 impl Plugin for PathPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<LivePaths>().add_systems(
-            FixedUpdate,
-            (
-                record_path,
-                find_intersections,
-                check_areas,
-                draw_path,
-                despawwn_old_paths,
+        app.init_resource::<LivePaths>()
+            .add_systems(
+                FixedUpdate,
+                (
+                    record_path,
+                    find_intersections,
+                    check_areas,
+                    draw_path,
+                    despawwn_old_paths,
+                )
+                    .chain(),
             )
-                .chain(),
-        );
+            .add_systems(OnExit(Screen::Gameplay), despawn_all_paths);
     }
 }
 
@@ -191,7 +196,6 @@ fn find_intersections(
 
             // save the remainder
             let mut remainder = path.points[0..segment_indicies[0]].to_vec();
-            remainder.push(Vec2::new(intersection_point.x, intersection_point.y));
             remainder.extend(&path.points[segment_indicies[1]..]);
             if remainder.len() > new_points.len() {
                 path.remainder = Some(remainder);
@@ -265,5 +269,11 @@ fn check_areas(
 fn despawwn_old_paths(mut commands: Commands, live_paths: Res<LivePaths>) {
     if live_paths.0.len() > 4 {
         commands.entity(live_paths.0[0]).despawn();
+    }
+}
+
+fn despawn_all_paths(mut commands: Commands, paths: Query<Entity, With<Path>>) {
+    for e in &paths {
+        commands.entity(e).despawn();
     }
 }

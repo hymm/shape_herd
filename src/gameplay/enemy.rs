@@ -23,7 +23,8 @@ impl Plugin for EnemyPlugin {
                     spawn.write(SpawnEnemies);
                 },
             )
-            .add_systems(Update, spawn_enemies.run_if(in_state(Screen::Gameplay)));
+            .add_systems(Update, spawn_enemies.run_if(in_state(Screen::Gameplay)))
+            .add_systems(OnExit(Screen::Gameplay), despawn_all_enemies);
     }
 }
 
@@ -309,5 +310,11 @@ fn spawn_enemies(
                 &handles,
             );
         }
+    }
+}
+
+fn despawn_all_enemies(mut commands: Commands, enemies: Query<Entity, With<Enemy>>) {
+    for e in &enemies {
+        commands.entity(e).despawn();
     }
 }
