@@ -97,7 +97,8 @@ fn point_player(
 }
 
 fn accelerate_player(
-    button: Res<ButtonInput<KeyCode>>,
+    key: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     player: Single<(&Transform, &Velocity, &mut Acceleration), With<Player>>,
 ) {
     // TODO: move these to a config file
@@ -113,13 +114,13 @@ fn accelerate_player(
     let (_, _, angle) = t.rotation.to_euler(EulerRot::XYZ);
     let forward = Vec2::from_angle(angle + PI / 2.);
     let v_forward = v.dot(forward);
-    let a_forward = if button.pressed(KeyCode::KeyW) {
+    let a_forward = if key.pressed(KeyCode::KeyW) || mouse.pressed(MouseButton::Left) {
         if v_forward >= 0.0 {
             FORWARD_ACCEL
         } else {
             FORWARD_ACCEL_REVERSE
         }
-    } else if button.pressed(KeyCode::KeyS) {
+    } else if key.pressed(KeyCode::KeyS) || mouse.pressed(MouseButton::Middle) {
         if v_forward > 0.0 {
             -FRICTION_BRAKE
         } else if v_forward < 0.0 {
@@ -150,11 +151,15 @@ fn accelerate_player(
 }
 
 fn control_drawing(
-    buttons: Res<ButtonInput<KeyCode>>,
+    key: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     player: Single<&mut DrawPath, With<Player>>,
 ) {
     let mut draw = player.into_inner();
-    match (buttons.just_pressed(KeyCode::Space), draw.active()) {
+    match (
+        key.just_pressed(KeyCode::Space) || mouse.just_pressed(MouseButton::Right),
+        draw.active(),
+    ) {
         (true, false) => draw.activate(),
         (true, true) => {
             draw.deactivate();

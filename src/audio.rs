@@ -1,26 +1,12 @@
 use bevy::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
-    app.register_type::<Music>();
     app.register_type::<SoundEffect>();
 
     app.add_systems(
         Update,
         apply_global_volume.run_if(resource_changed::<GlobalVolume>),
     );
-}
-
-/// An organizational marker component that should be added to a spawned [`AudioPlayer`] if it's in the
-/// general "music" category (e.g. global background music, soundtrack).
-///
-/// This can then be used to query for and operate on sounds in that category.
-#[derive(Component, Reflect, Default)]
-#[reflect(Component)]
-pub struct Music;
-
-/// A music audio instance.
-pub fn music(handle: Handle<AudioSource>) -> impl Bundle {
-    (AudioPlayer(handle), PlaybackSettings::LOOP, Music)
 }
 
 /// An organizational marker component that should be added to a spawned [`AudioPlayer`] if it's in the
