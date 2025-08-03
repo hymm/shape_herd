@@ -8,7 +8,7 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(OnEnter(Menu::Main), spawn_main_menu);
 }
 
-fn spawn_main_menu(mut commands: Commands) {
+fn spawn_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         widget::ui_root("Main Menu"),
         GlobalZIndex(2),
@@ -18,6 +18,7 @@ fn spawn_main_menu(mut commands: Commands) {
             widget::button("Play", enter_loading_or_gameplay_screen),
             widget::button("Settings", open_settings_menu),
             widget::button("Exit", exit_app),
+            rules(asset_server.load("images/rules.png")),
         ],
         #[cfg(target_family = "wasm")]
         children![
@@ -25,6 +26,17 @@ fn spawn_main_menu(mut commands: Commands) {
             widget::button("Settings", open_settings_menu),
         ],
     ));
+}
+
+fn rules(image: Handle<Image>) -> impl Bundle {
+    (
+        ImageNode { image, ..default() },
+        Node {
+            width: Val::Px(356.),
+            height: Val::Px(200.),
+            ..default()
+        },
+    )
 }
 
 fn enter_loading_or_gameplay_screen(
