@@ -145,6 +145,7 @@ impl EnemyType {
         velocity: LinearVelocity,
         handles: &EnemyHandles,
     ) {
+        let collider_size = if self == EnemyType::White { 15. } else { 10. };
         let mesh = handles.mesh(self);
         let material = handles.material(self);
         commands.spawn((
@@ -157,7 +158,7 @@ impl EnemyType {
             velocity,
             AngularVelocity::default(),
             Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
-            Collider::circle(10.),
+            Collider::circle(collider_size),
             Restitution::new(0.8),
         ));
     }

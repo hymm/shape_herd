@@ -28,8 +28,10 @@ impl Plugin for PlayerPlugin {
                     (control_drawing, handle_player_collisions),
                 )
                     .chain()
-                    .run_if(in_state(Screen::Gameplay)),
+                    .run_if(in_state(Screen::Gameplay))
+                    .run_if(in_state(Playing::Live)),
             )
+            .add_systems(OnEnter(Playing::Dying), despawn_player)
             .add_systems(OnExit(Screen::Gameplay), despawn_player.in_set(DespawnSet));
     }
 }
@@ -166,6 +168,7 @@ fn handle_player_collisions(
     walls: Query<(), With<Wall>>,
     enemies: Query<&EnemyType>,
     collisions: Collisions,
+    mut next_state: ResMut<NextState<Playing>>,
 ) {
     let (player, mut player_v, mut player_t) = player.into_inner();
     for contact_pair in collisions.collisions_with(player) {
@@ -184,16 +187,13 @@ fn handle_player_collisions(
         }
 
         if let Ok(typee) = enemies.get(contact_pair.collider1) {
-            if *typee == EnemyType::White {}
+            if *typee == EnemyType::White {
+                next_state.set(Playing::Dying);
+            }
         }
     }
 }
 
-fn despawn_player(
-    mut commands: Commands,
-    player: Single<Entity, With<Player>>,
-    mut next_state: ResMut<NextState<Playing>>,
-) {
+fn despawn_player(mut commands: Commands, player: Single<Entity, With<Player>>) {
     commands.entity(*player).despawn();
-    next_state.set(Playing::Dying);
 }

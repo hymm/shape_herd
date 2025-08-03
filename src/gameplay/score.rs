@@ -58,6 +58,7 @@ fn spawn_score(mut commands: Commands, score: Res<Score>) {
             score_text("Purple", score.purple),
             score_text("Yellow", score.yellow),
             score_text("Cyan", score.cyan),
+            widget::button("Quit to title", quit_to_title),
         ],
     ));
 }
@@ -70,6 +71,7 @@ pub fn score_text(text: impl Into<String>, score: usize) -> impl Bundle {
             display: Display::Flex,
             flex_direction: FlexDirection::Row,
             width: Val::Percent(100.),
+            align_items: AlignItems::Center,
             ..default()
         },
         children![
@@ -89,4 +91,8 @@ pub fn score_text(text: impl Into<String>, score: usize) -> impl Bundle {
             )
         ],
     )
+}
+
+fn quit_to_title(_: Trigger<Pointer<Click>>, mut next_screen: ResMut<NextState<Screen>>) {
+    next_screen.set(Screen::Title);
 }
