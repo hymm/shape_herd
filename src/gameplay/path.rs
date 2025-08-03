@@ -11,7 +11,10 @@ use geo::{LineString, Point, Polygon, prelude::Contains};
 use rand::Rng;
 
 use crate::{
-    gameplay::enemy::{Enemy, EnemyHandles, EnemyType, SpawnEnemies},
+    gameplay::{
+        DespawnSet,
+        enemy::{Enemy, EnemyHandles, EnemyType, SpawnEnemies},
+    },
     screens::Screen,
 };
 
@@ -31,7 +34,10 @@ impl Plugin for PathPlugin {
                 )
                     .chain(),
             )
-            .add_systems(OnExit(Screen::Gameplay), despawn_all_paths);
+            .add_systems(
+                OnExit(Screen::Gameplay),
+                despawn_all_paths.in_set(DespawnSet),
+            );
     }
 }
 

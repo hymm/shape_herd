@@ -3,6 +3,8 @@ mod path;
 mod physics;
 mod player;
 mod rng_bag;
+mod score;
+mod state;
 use avian2d::prelude::{Collider, RigidBody};
 use bevy::{prelude::*, window::PrimaryWindow};
 
@@ -14,9 +16,14 @@ pub(super) fn plugin(app: &mut App) {
         player::PlayerPlugin,
         path::PathPlugin,
         physics::PhysicsPlugin,
+        score::ScorePlugin,
+        state::PlayingStatePlugin,
     ))
     .add_systems(OnEnter(Screen::Gameplay), spawn_window_colliders);
 }
+
+#[derive(SystemSet, Hash, PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+struct DespawnSet;
 
 #[derive(Component)]
 struct Wall;

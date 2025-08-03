@@ -7,9 +7,11 @@ use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
     gameplay::{
-        Wall,
+        DespawnSet, Wall,
+        enemy::EnemyType,
         path::DrawPath,
         physics::{Acceleration, Velocity},
+        state::Playing,
     },
     screens::Screen,
 };
@@ -28,7 +30,7 @@ impl Plugin for PlayerPlugin {
                     .chain()
                     .run_if(in_state(Screen::Gameplay)),
             )
-            .add_systems(OnExit(Screen::Gameplay), despawn_player);
+            .add_systems(OnExit(Screen::Gameplay), despawn_player.in_set(DespawnSet));
     }
 }
 
@@ -162,6 +164,7 @@ fn control_drawing(
 fn handle_player_collisions(
     player: Single<(Entity, &mut Velocity, &mut Transform), With<Player>>,
     walls: Query<(), With<Wall>>,
+    enemies: Query<&EnemyType>,
     collisions: Collisions,
 ) {
     let (player, mut player_v, mut player_t) = player.into_inner();
@@ -179,9 +182,18 @@ fn handle_player_collisions(
                 player_t.translation = current_pos.extend(0.0);
             }
         }
+
+        if let Ok(typee) = enemies.get(contact_pair.collider1) {
+            if *typee == EnemyType::White {}
+        }
     }
 }
 
-fn despawn_player(mut commands: Commands, player: Single<Entity, With<Player>>) {
+fn despawn_player(
+    mut commands: Commands,
+    player: Single<Entity, With<Player>>,
+    mut next_state: ResMut<NextState<Playing>>,
+) {
     commands.entity(*player).despawn();
+    next_state.set(Playing::Dying);
 }

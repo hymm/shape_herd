@@ -9,6 +9,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use rand::Rng;
 
+use crate::gameplay::DespawnSet;
 use crate::gameplay::rng_bag::RngBag;
 use crate::screens::Screen;
 
@@ -24,7 +25,10 @@ impl Plugin for EnemyPlugin {
                 },
             )
             .add_systems(Update, spawn_enemies.run_if(in_state(Screen::Gameplay)))
-            .add_systems(OnExit(Screen::Gameplay), despawn_all_enemies);
+            .add_systems(
+                OnExit(Screen::Gameplay),
+                despawn_all_enemies.in_set(DespawnSet),
+            );
     }
 }
 
