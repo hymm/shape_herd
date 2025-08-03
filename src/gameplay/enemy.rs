@@ -102,6 +102,7 @@ impl EnemyHandles {
             EnemyType::Yellow => self.yellow_mesh.clone(),
             EnemyType::Cyan => self.cyan_mesh.clone(),
             EnemyType::White => self.white_mesh.clone(),
+            EnemyType::None => unreachable!(),
         }
     }
 
@@ -114,11 +115,12 @@ impl EnemyHandles {
             EnemyType::Yellow => self.yellow_material.clone(),
             EnemyType::Cyan => self.cyan_material.clone(),
             EnemyType::White => self.white_material.clone(),
+            EnemyType::None => unreachable!(),
         }
     }
 }
 
-#[derive(Component, Clone, Copy, PartialEq)]
+#[derive(Component, Clone, Copy, PartialEq, Debug)]
 pub enum EnemyType {
     Red,
     Green,
@@ -127,6 +129,8 @@ pub enum EnemyType {
     Yellow,
     Cyan,
     White,
+    // no entity should be spawned with this type
+    None,
 }
 
 impl EnemyType {
@@ -163,7 +167,9 @@ impl EnemyType {
             EnemyType::Yellow => tailwind::YELLOW_500,
             EnemyType::Cyan => tailwind::CYAN_500,
             EnemyType::White => tailwind::GRAY_100,
+            EnemyType::None => unreachable!(),
         };
+
         ColorMaterial {
             color: color.into(),
             ..default()
@@ -196,10 +202,11 @@ impl EnemyType {
                 .into()
             }
             EnemyType::White => Circle::new(0.75 * SHAPE_LENGTH).into(),
+            EnemyType::None => unreachable!(),
         }
     }
 
-    fn pair_combine(&self, other: Self) -> Option<Self> {
+    pub fn pair_combine(&self, other: Self) -> Option<Self> {
         use EnemyType::*;
         match (self, other) {
             // combine primaries
@@ -210,73 +217,20 @@ impl EnemyType {
             (Red, Cyan) | (Cyan, Red) => Some(White),
             (Green, Purple) | (Purple, Green) => Some(White),
             (Blue, Yellow) | (Yellow, Blue) => Some(White),
-            _ => None,
+            _ => Option::None,
         }
     }
 
-    fn is_primary(&self) -> bool {
-        use EnemyType::*;
-        matches!(self, Red | Green | Blue)
-    }
-
-    /// returns None if they can't combine
-    pub fn check_combine<'a>(
-        mut enemies: impl ExactSizeIterator<
-            Item = &'a (Entity, EnemyType, Transform, &'a LinearVelocity),
-        >,
-    ) -> Option<(EnemyType, Transform, LinearVelocity)> {
-        match enemies.len() {
-            0 | 1 => None,
-            2 => {
-                let Some((_, enemy_type, t, v)) = enemies.next() else {
-                    unreachable!();
-                };
-
-                let Some((_, next_type, next_t, next_v)) = enemies.next() else {
-                    unreachable!();
-                };
-
-                let new_type = enemy_type.pair_combine(*next_type)?;
-
-                let new_t = Transform::from_translation((t.translation + next_t.translation) / 2.);
-                let new_v = LinearVelocity((v.0 + next_v.0) / 2.);
-
-                Some((new_type, new_t, new_v))
-            }
-            3 => {
-                let mut has_red = false;
-                let mut has_green = false;
-                let mut has_blue = false;
-                let mut is_primary = None;
-                let mut new_t = Vec2::default();
-                let mut new_v = Vec2::default();
-                for (_, typ, t, v) in enemies {
-                    if is_primary.is_none() {
-                        is_primary = Some(typ.is_primary());
-                    }
-
-                    match typ {
-                        EnemyType::Green => has_green = true,
-                        EnemyType::Blue => has_blue = true,
-                        EnemyType::Red => has_red = true,
-                        _ => {}
-                    }
-
-                    new_t += t.translation.truncate();
-                    new_v += v.0;
-                }
-
-                if has_red && has_green && has_blue {
-                    Some((
-                        EnemyType::White,
-                        Transform::from_translation((new_t / 3.).extend(0.0)),
-                        LinearVelocity(new_v / 3.),
-                    ))
-                } else {
-                    None
-                }
-            }
-            _ => None,
+    pub fn complement(&self) -> Self {
+        match self {
+            EnemyType::Red => EnemyType::Cyan,
+            EnemyType::Green => EnemyType::Purple,
+            EnemyType::Blue => EnemyType::Yellow,
+            EnemyType::Purple => EnemyType::Green,
+            EnemyType::Yellow => EnemyType::Blue,
+            EnemyType::Cyan => EnemyType::Red,
+            EnemyType::White => EnemyType::None,
+            EnemyType::None => unreachable!(),
         }
     }
 }

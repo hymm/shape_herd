@@ -1,9 +1,14 @@
-use avian2d::prelude::{Collider, LinearVelocity, RigidBody};
+use std::f32::consts::PI;
+
+use avian2d::prelude::{Collider, ColliderDisabled, LinearVelocity, RigidBody};
 use bevy::{
     ecs::{component::HookContext, world::DeferredWorld},
+    math::ops::exp,
+    platform::collections::HashMap,
     prelude::*,
 };
 use geo::{LineString, Point, Polygon, prelude::Contains};
+use rand::Rng;
 
 use crate::{
     gameplay::enemy::{Enemy, EnemyHandles, EnemyType, SpawnEnemies},
@@ -22,6 +27,7 @@ impl Plugin for PathPlugin {
                     check_areas,
                     draw_path,
                     despawwn_old_paths,
+                    animate_combining,
                 )
                     .chain(),
             )
@@ -212,9 +218,10 @@ fn find_intersections(
 fn check_areas(
     mut commands: Commands,
     mut paths: Query<(Entity, &mut Path), (With<ClosedPath>, Changed<Path>)>,
-    enemies: Query<(Entity, &Transform, &EnemyType, &LinearVelocity), With<Enemy>>,
-    handles: Res<EnemyHandles>,
-    mut spawn_enemies: EventWriter<SpawnEnemies>,
+    enemies: Query<
+        (Entity, &Transform, &EnemyType, &LinearVelocity),
+        (With<Enemy>, Without<ColliderDisabled>),
+    >,
     mut pen: Single<&mut DrawPath>,
 ) {
     for (e, mut path) in &mut paths {
@@ -242,26 +249,287 @@ fn check_areas(
             1 => {
                 pen.deactivate();
             }
-            2 | 3 => {
-                if let Some((typ, new_t, new_v)) = EnemyType::check_combine(surrounded.iter()) {
-                    typ.spawn(&mut commands, new_t, new_v, &handles);
-                    for (enemy, ..) in surrounded {
-                        commands.entity(enemy).despawn();
+            _ => {
+                let mut combines = Vec::new();
+                let mut explode = Vec::new();
+
+                while let Some((check_entity, typ, _t, v)) = surrounded.pop() {
+                    let mut entities = vec![check_entity];
+
+                    // check for complements
+                    let complement_pos = surrounded
+                        .iter()
+                        .position(|(_, other_type, ..)| typ.complement() == *other_type);
+                    if let Some(pos) = complement_pos {
+                        let (comp_e, comp_typ, _comp_t, comp_v) = surrounded.remove(pos);
+                        entities.push(comp_e);
+
+                        combines.push(Combine {
+                            entities,
+                            new_type: typ.pair_combine(comp_typ).unwrap(),
+                            velocity: (**v + **comp_v) / 2.,
+                        });
+                        continue;
                     }
-                    if typ == EnemyType::White {
+
+                    // check for full set of primaries
+                    let mut required = vec![EnemyType::Red, EnemyType::Blue, EnemyType::Green];
+                    if !required.contains(&typ) {
+                        explode.push(check_entity);
+                        continue;
+                    }
+                    required.retain(|t| *t != typ);
+                    let Some(pos) = surrounded
+                        .iter()
+                        .position(|(_, typee, ..)| *typee == required[0] || *typee == required[1])
+                    else {
+                        explode.push(check_entity);
+                        continue;
+                    };
+                    let result1 = surrounded.remove(pos);
+                    required.retain(|t| *t != result1.1);
+
+                    let Some(pos) = surrounded
+                        .iter()
+                        .position(|(_, typee, ..)| *typee == required[0])
+                    else {
+                        entities.push(result1.0);
+                        let new_type = typ.pair_combine(result1.1).unwrap();
+                        combines.push(Combine {
+                            entities,
+                            new_type,
+                            velocity: (**v + **result1.3) / 2.0,
+                        });
+                        continue;
+                    };
+                    let result2 = surrounded.remove(pos);
+                    entities.push(result1.0);
+                    entities.push(result2.0);
+
+                    combines.push(Combine {
+                        entities,
+                        new_type: EnemyType::White,
+                        velocity: (**v + **result1.3 + **result2.3) / 3.0,
+                    });
+                }
+
+                commands.spawn(AnimateCombining::Initialize { combines, explode });
+            }
+        }
+    }
+}
+/// Combine these entites into one enemy
+struct Combine {
+    entities: Vec<Entity>,
+    new_type: EnemyType,
+    velocity: Vec2,
+}
+
+#[derive(Component)]
+enum AnimateCombining {
+    Initialize {
+        combines: Vec<Combine>,
+        explode: Vec<Entity>,
+    },
+    MoveToCenter {
+        center: Vec2,
+        target_positions: HashMap<Entity, Vec2>,
+        combines: Vec<Combine>,
+        explode: Vec<Entity>,
+    },
+    Eject {
+        center: Vec2,
+        combines: Vec<Combine>,
+        explode: Vec<Entity>,
+    },
+    Done {
+        center: Vec2,
+        combines: Vec<Combine>,
+    },
+    None,
+}
+
+impl AnimateCombining {
+    fn transition_to_move_to_center(
+        &mut self,
+        center: Vec2,
+        target_positions: HashMap<Entity, Vec2>,
+    ) {
+        let old = std::mem::replace(self, Self::None);
+
+        match old {
+            AnimateCombining::Initialize { combines, explode } => {
+                *self = AnimateCombining::MoveToCenter {
+                    center,
+                    target_positions,
+                    combines,
+                    explode,
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn transition_to_eject(&mut self) {
+        let old = std::mem::replace(self, Self::None);
+
+        match old {
+            AnimateCombining::MoveToCenter {
+                combines,
+                explode,
+                center,
+                ..
+            } => {
+                *self = AnimateCombining::Eject {
+                    center,
+                    combines,
+                    explode,
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn transition_to_done(&mut self) {
+        let old = std::mem::replace(self, Self::None);
+
+        match old {
+            AnimateCombining::Eject {
+                combines, center, ..
+            } => *self = AnimateCombining::Done { center, combines },
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Deref, DerefMut)]
+struct TimeoutTimer(Timer);
+impl Default for TimeoutTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(0.5, TimerMode::Once))
+    }
+}
+
+fn animate_combining(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut animations: Query<(Entity, &mut AnimateCombining)>,
+    mut enemies: Query<(&mut Transform, &mut LinearVelocity), With<Enemy>>,
+    mut spawn_enemies: EventWriter<SpawnEnemies>,
+    paths: Query<Entity, With<Path>>,
+    handles: Res<EnemyHandles>,
+    mut animation_timeout: Local<TimeoutTimer>,
+) {
+    const RADIUS: f32 = 10.0;
+    let mut rng = rand::thread_rng();
+    for (animate_entity, mut anim) in &mut animations {
+        match *anim {
+            AnimateCombining::Initialize {
+                ref combines,
+                ref explode,
+            } => {
+                let mut center_sum = Vec2::default();
+                let entity_count = combines
+                    .iter()
+                    .flat_map(|combine| combine.entities.iter().copied())
+                    .chain(explode.iter().copied())
+                    .count();
+                for e in combines
+                    .iter()
+                    .flat_map(|combine| combine.entities.iter().copied())
+                    .chain(explode.iter().copied())
+                {
+                    // disable collision boxes
+                    commands.entity(e).insert(ColliderDisabled);
+
+                    // calculate target position
+                    center_sum += enemies
+                        .get(e)
+                        .map(|(t, ..)| t)
+                        .copied()
+                        .unwrap_or_default()
+                        .translation
+                        .truncate();
+                }
+
+                let center = center_sum / entity_count as f32;
+
+                let target_positions = combines
+                    .iter()
+                    .flat_map(|combine| combine.entities.iter().copied())
+                    .chain(explode.iter().copied())
+                    .enumerate()
+                    .map(|(i, e)| {
+                        let offset_vec = Vec2::from_angle(2. * PI * i as f32 / entity_count as f32);
+                        let target = center + RADIUS * offset_vec;
+                        (e, target)
+                    })
+                    .collect();
+
+                anim.transition_to_move_to_center(center, target_positions);
+            }
+            AnimateCombining::MoveToCenter {
+                ref target_positions,
+                ..
+            } => {
+                for (entity, target) in target_positions.iter() {
+                    let mut transform = enemies.get_mut(*entity).map(|(t, ..)| t).unwrap();
+                    transform.translation = transform
+                        .translation
+                        .lerp(target.extend(0.0), 1. - exp(-10. * time.delta_secs()));
+                }
+
+                if animation_timeout.tick(time.delta()).finished() {
+                    animation_timeout.reset();
+                    anim.transition_to_eject();
+                }
+            }
+            AnimateCombining::Eject { ref explode, .. } => {
+                // spit out exploded bits
+                for e in explode {
+                    commands.entity(*e).remove::<ColliderDisabled>();
+                    let Ok((_, mut v)) = enemies.get_mut(*e) else {
+                        continue;
+                    };
+
+                    **v = Vec2::new(
+                        rng.gen_range(-1000.0..1000.0),
+                        rng.gen_range(-1000.0..1000.0),
+                    );
+                }
+
+                if !explode.is_empty() {
+                    for e in &paths {
+                        commands.entity(e).despawn();
+                    }
+                }
+
+                anim.transition_to_done();
+            }
+            AnimateCombining::Done {
+                ref center,
+                ref combines,
+            } => {
+                for combine in combines {
+                    for e in &combine.entities {
+                        commands.entity(*e).despawn();
+                    }
+
+                    combine.new_type.spawn(
+                        &mut commands,
+                        Transform::from_translation(center.extend(0.0)),
+                        LinearVelocity(combine.velocity),
+                        &handles,
+                    );
+
+                    if combine.new_type == EnemyType::White {
                         spawn_enemies.write(SpawnEnemies);
                     }
-                } else {
-                    // explode the items
-                    // commands.entity(e).despawn();
                 }
-                pen.deactivate();
+
+                commands.entity(animate_entity).despawn();
             }
-            _ => {
-                pen.deactivate();
-                // explode the items
-                // commands.entity(e).despawn();
-            }
+            AnimateCombining::None => unreachable!(),
         }
     }
 }
