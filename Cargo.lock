@@ -2517,19 +2517,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gmtk_flow"
-version = "0.1.0"
-dependencies = [
- "avian2d",
- "bevy",
- "geo",
- "intersect2d",
- "log",
- "rand",
- "tracing",
-]
-
-[[package]]
 name = "gpu-alloc"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4375,6 +4362,19 @@ dependencies = [
  "memchr",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "shape_herd"
+version = "0.1.0"
+dependencies = [
+ "avian2d",
+ "bevy",
+ "geo",
+ "intersect2d",
+ "log",
+ "rand",
+ "tracing",
 ]
 
 [[package]]
