@@ -13,9 +13,11 @@ impl Plugin for EnemyAiPlugin {
 #[derive(Component)]
 #[require(ExternalForce)]
 pub struct FollowPlayer {
-    pub active: bool,
     /// scalar acceleration to apply in direction of player
+    /// use negative acceleration to move away from player
     pub acceleration: f32,
+    /// react to playter within this distance
+    pub distance: f32,
 }
 
 fn follow_player(
@@ -23,6 +25,11 @@ fn follow_player(
     mut followers: Query<(&mut ExternalForce, &Transform, &FollowPlayer)>,
 ) {
     for (mut f, t, follow) in &mut followers {
-        **f = follow.acceleration * (player.translation - t.translation).truncate()
+        let player_direction = (player.translation - t.translation).truncate();
+        if player_direction.length() < follow.distance {
+            **f = follow.acceleration * player_direction;
+        } else {
+            **f = Vec2::ZERO;
+        }
     }
 }

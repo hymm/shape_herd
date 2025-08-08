@@ -1,7 +1,8 @@
 use std::f32::consts::PI;
 
 use avian2d::prelude::{
-    AngularVelocity, CoefficientCombine, Collider, Friction, LinearVelocity, Restitution, RigidBody,
+    AngularVelocity, CoefficientCombine, Collider, Friction, LinearVelocity, MaxLinearSpeed,
+    Restitution, RigidBody,
 };
 use bevy::color::palettes::tailwind;
 use bevy::math::ops::cos;
@@ -162,14 +163,25 @@ impl EnemyType {
                 Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
                 Collider::circle(collider_size),
                 Restitution::new(0.8),
+                MaxLinearSpeed(100.0),
             ))
             .id();
 
-        if self == EnemyType::Blue {
-            commands.entity(id).insert(FollowPlayer {
-                active: true,
-                acceleration: 500.0,
-            });
+        match self {
+            EnemyType::Red => {}
+            EnemyType::Green => {
+                commands.entity(id).insert(FollowPlayer {
+                    acceleration: -2000.0,
+                    distance: 150.0,
+                });
+            }
+            EnemyType::Blue => {
+                commands.entity(id).insert(FollowPlayer {
+                    acceleration: 2000.0,
+                    distance: 150.0,
+                });
+            }
+            _ => {}
         }
     }
 
