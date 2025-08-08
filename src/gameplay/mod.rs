@@ -1,4 +1,5 @@
 mod enemy;
+mod enemy_ai;
 mod path;
 mod physics;
 mod player;
@@ -13,6 +14,7 @@ use crate::screens::Screen;
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
         enemy::EnemyPlugin,
+        enemy_ai::EnemyAiPlugin,
         player::PlayerPlugin,
         path::PathPlugin,
         physics::PhysicsPlugin,

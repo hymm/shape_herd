@@ -10,7 +10,7 @@ impl Plugin for PhysicsPlugin {
 }
 
 #[derive(Component, Deref, DerefMut, Default)]
-pub(crate) struct Acceleration(Vec2);
+pub(crate) struct Acceleration(pub(crate) Vec2);
 
 #[derive(Component, Deref, DerefMut, Default, Clone, Copy)]
 pub(crate) struct Velocity(pub Vec2);

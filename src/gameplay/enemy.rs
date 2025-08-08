@@ -10,6 +10,7 @@ use bevy::window::PrimaryWindow;
 use rand::Rng;
 
 use crate::gameplay::DespawnSet;
+use crate::gameplay::enemy_ai::FollowPlayer;
 use crate::gameplay::rng_bag::RngBag;
 use crate::screens::Screen;
 
@@ -148,19 +149,28 @@ impl EnemyType {
         let collider_size = if self == EnemyType::White { 15. } else { 10. };
         let mesh = handles.mesh(self);
         let material = handles.material(self);
-        commands.spawn((
-            self,
-            Enemy,
-            transform,
-            MeshMaterial2d(material),
-            Mesh2d(mesh),
-            RigidBody::Dynamic,
-            velocity,
-            AngularVelocity::default(),
-            Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
-            Collider::circle(collider_size),
-            Restitution::new(0.8),
-        ));
+        let id = commands
+            .spawn((
+                self,
+                Enemy,
+                transform,
+                MeshMaterial2d(material),
+                Mesh2d(mesh),
+                RigidBody::Dynamic,
+                velocity,
+                AngularVelocity::default(),
+                Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
+                Collider::circle(collider_size),
+                Restitution::new(0.8),
+            ))
+            .id();
+
+        if self == EnemyType::Blue {
+            commands.entity(id).insert(FollowPlayer {
+                active: true,
+                acceleration: 500.0,
+            });
+        }
     }
 
     fn material(&self) -> ColorMaterial {

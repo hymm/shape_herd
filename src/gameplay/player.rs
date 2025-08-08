@@ -37,7 +37,7 @@ impl Plugin for PlayerPlugin {
 }
 
 #[derive(Component)]
-struct Player;
+pub(crate) struct Player;
 
 fn spawn_player(
     mut commands: Commands,
