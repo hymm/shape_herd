@@ -10,7 +10,7 @@ use crate::{
         DespawnSet, Wall,
         enemy::EnemyType,
         path::DrawPath,
-        physics::{Acceleration, Velocity},
+        physics::{Acceleration, MaxSpeed, Velocity},
         state::Playing,
     },
     screens::Screen,
@@ -56,6 +56,7 @@ fn spawn_player(
         Name::new("Player"),
         Mesh2d(mesh_handle),
         MeshMaterial2d(mat_handle),
+        MaxSpeed(300.0),
         Velocity::default(),
         Acceleration::default(),
         DrawPath::default(),
@@ -102,11 +103,11 @@ fn accelerate_player(
     player: Single<(&Transform, &Velocity, &mut Acceleration), With<Player>>,
 ) {
     // TODO: move these to a config file
-    const FRICTION_TRANSVERSE: f32 = 300.0;
+    const FRICTION_TRANSVERSE: f32 = 1000.0;
     const FRICTION_NEUTRAL: f32 = 50.0;
-    const FRICTION_BRAKE: f32 = 500.0;
-    const FORWARD_ACCEL: f32 = 100.0;
-    const FORWARD_ACCEL_REVERSE: f32 = 200.0;
+    const FRICTION_BRAKE: f32 = 2000.0;
+    const FORWARD_ACCEL: f32 = 200.0;
+    const FORWARD_ACCEL_REVERSE: f32 = 800.0;
 
     let (t, v, mut a) = player.into_inner();
 
@@ -191,10 +192,10 @@ fn handle_player_collisions(
             }
         }
 
-        if let Ok(typee) = enemies.get(contact_pair.collider1) {
-            if *typee == EnemyType::White {
-                next_state.set(Playing::Dying);
-            }
+        if let Ok(typee) = enemies.get(contact_pair.collider1)
+            && *typee == EnemyType::White
+        {
+            next_state.set(Playing::Dying);
         }
     }
 }
