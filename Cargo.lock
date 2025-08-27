@@ -2676,6 +2676,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
+name = "hexx"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62c48463d4a40aa16a39917af6258c0ba751232c5c4c2064be1d3477fa207d4c"
+dependencies = [
+ "bevy_platform",
+ "bevy_reflect",
+ "glam",
+ "serde",
+]
+
+[[package]]
 name = "ieee754"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4371,6 +4383,7 @@ dependencies = [
  "avian2d",
  "bevy",
  "geo",
+ "hexx",
  "intersect2d",
  "log",
  "rand",

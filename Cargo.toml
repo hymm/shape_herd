@@ -20,6 +20,7 @@ tracing = { version = "0.1", features = [
 avian2d = "0.3.1"
 intersect2d = "0.4.2"
 geo = "0.18.0"
+hexx = { version = "0.21.0", features = ["bevy", "mesh"]}
 
 # Your web builds will start failing if you add a dependency that pulls in `getrandom` v0.3+.
 # To fix this, you should tell `getrandom` to use the `wasm_js` backend on Wasm.

@@ -64,6 +64,7 @@ fn spawn_player(
         Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
         Collider::triangle(triangle_points[0], triangle_points[1], triangle_points[2]),
         Restitution::new(0.8),
+        Transform::from_xyz(0.0, 0.0, crate::gameplay::layers::ON_GROUND),
     ));
 }
 
@@ -187,8 +188,9 @@ fn handle_player_collisions(
             // make sure player is outside of wall
             if let Some(contact_point) = contact_pair.find_deepest_contact() {
                 let mut current_pos = player_t.translation.truncate();
+                let z = player_t.translation.z;
                 current_pos += normal * contact_point.penetration;
-                player_t.translation = current_pos.extend(0.0);
+                player_t.translation = current_pos.extend(z);
             }
         }
 

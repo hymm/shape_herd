@@ -20,7 +20,8 @@ pub(crate) struct MaxSpeed(pub f32);
 
 fn apply_velocity(mut q: Query<(&Velocity, &mut Transform)>, time: Res<Time>) {
     for (v, mut t) in &mut q {
-        t.translation += v.extend(0.0) * time.delta_secs();
+        let z = t.translation.z;
+        t.translation += v.extend(z) * time.delta_secs();
     }
 }
 

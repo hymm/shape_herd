@@ -1,5 +1,7 @@
 mod enemy;
 mod enemy_ai;
+mod layers;
+mod map;
 mod path;
 mod physics;
 mod player;
@@ -20,6 +22,7 @@ pub(super) fn plugin(app: &mut App) {
         physics::PhysicsPlugin,
         score::ScorePlugin,
         state::PlayingStatePlugin,
+        map::MapPlugin,
     ))
     .add_systems(OnEnter(Screen::Gameplay), spawn_window_colliders);
 }
